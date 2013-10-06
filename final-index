@@ -1,0 +1,146 @@
+<html>
+<head>
+<script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+<script src="http://code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+<title>Alpha Chatting</title>
+	<style>
+		#setNick{
+	font-family: "a아띠", "a카툰", "a피오피네모";
+	font-size: 10px;
+	clear: none;
+	float: none;
+	height: auto;
+	width: auto;
+	margin: auto;
+		}
+		#chat{
+	height: auto;
+		}
+		#contentWrap{
+			display: none;
+			margin: auto;
+		}
+		#chatWrap{
+			float: left;
+			border: 1px #000 solid;
+		}
+		.error{
+	color: red;
+
+		}
+		.whisperload{
+			color: red;
+				font-size: 10px;
+		}
+		.whisper{
+	color: #F60;
+	font-style: normal;
+	text-decoration: underline;
+		}
+		.newuser{
+	color: #00F;
+	font-family: "a아띠", "a카툰", "a피오피네모";
+	font: "a아띠";
+		}
+
+  
+	#alpha {
+	height: 244px;
+	width: 258px;
+	margin: auto;
+}
+    </style>
+    
+</head>
+<body>
+	<div id="nickWrap">
+
+		
+      <img id='alpha'src="http://www.logoed.co.uk/wp-content/uploads/2010/12/logo1.jpeg">
+		<p>닉네임을 입력해주세요:</p>
+		<p id="nickError"></p>
+		<form id="setNick">
+			<input size="35" id="nickname"></input>
+			<input type="submit"></input>
+		</form>
+        
+</div>
+
+	<div id="contentWrap">
+		<div id="chatWrap">
+			<div id="chat"></div>
+			<form id="send-message">
+				<input size="35" id="message"></input>
+				<input type="submit"></input>
+			</form>
+		</div>
+		<div id="users"></div>
+	</div>
+	
+	<script src="http://code.jquery.com/jquery-latest.min.js"></script>
+	<script src="/socket.io/socket.io.js"></script>
+	<script>
+		jQuery(function($){
+			var socket = io.connect();
+			var $nickForm = $('#setNick');
+			var $nickError = $('#nickError');
+			var $nickBox = $('#nickname');
+			var $users = $('#users');
+			var $messageForm = $('#send-message');
+			var $messageBox = $('#message');
+			var $chat = $('#chat');
+			
+			$nickForm.submit(function(e){
+				e.preventDefault();
+				socket.emit('new user', $nickBox.val(), function(data){
+					if(data){
+						$('#nickWrap').hide();
+						$('#contentWrap').show();
+					} else{
+						$nickError.html('중복되는 닉네임이 서버에 있습니다. 다른 닉네임으로 시도해주세요!');
+					}
+				});
+				$nickBox.val('');
+			});
+			
+			socket.on('usernames', function(data){
+				var html = '';
+				for(var i=0; i < data.length; i++){
+					html += data[i] + '<br/>'
+				}
+				$users.html('<span class="error">' + '실시간 유저 현황' + "</span><br/>" + "</span><br/>" + html);
+				
+			});
+			
+			$messageForm.submit(function(e){
+				e.preventDefault();
+				socket.emit('send message', $messageBox.val(), function(data){
+					$chat.append('<span class="error">' + data + "</span><br/>");
+				});
+				$messageBox.val('');
+			});
+			
+			socket.on('load old msgs', function(docs){
+				for(var i=docs.length-1; i >= 0; i--){
+					displayMsg(docs[i]);
+				}
+				$chat.append('<span class="error"><b>' + '이전 메시지 로드 완료!'+ "</span><br/>");
+			});
+			
+			socket.on('new message', function(data){
+				displayMsg(data);
+			});
+			
+
+			function displayMsg(data){
+				$chat.append('<span class="msg"><b>' + data.nick + ': </b>' + data.msg + "</span><br/>");
+			}
+			
+			socket.on('whisper', function(data){
+				$chat.append('<span class="whisper"><b>"' + data.nick + '"으로 부터의 귓속말: </b>' + data.msg + "</span><br/>");
+				
+			});
+		});
+	</script>
+</body>
+</html>
